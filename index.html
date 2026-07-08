@@ -1,604 +1,594 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Step Sequencer</title>
-    <style>
-        :root {
-            --bg-color: #0f172a;
-            --panel-bg: #1e293b;
-            --grid-bg: #334155;
-            --primary: #3b82f6;
-            --primary-glow: rgba(59, 130, 246, 0.5);
-            --drum-color: #ec4899;
-            --synth-color: #10b981;
-            --record-color: #ef4444;
-            --record-glow: rgba(239, 68, 68, 0.5);
-            --text: #f8fafc;
-            --text-muted: #94a3b8;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Sound Laboratory</title>
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
+<style>
+body {
+    margin: 0;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: white;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+}
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
+.panel {
+    width: 480px;
+    padding: 25px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 25px rgba(0, 0, 0, .4);
+    box-sizing: border-box;
+}
 
-        .sequencer-container {
-            background-color: var(--panel-bg);
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            width: 100%;
-            max-width: 950px;
-        }
+h1 {
+    text-align: center;
+    margin-top: 0;
+    font-size: 24px;
+}
 
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            border-bottom: 2px solid var(--grid-bg);
-            padding-bottom: 15px;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
+h3 {
+    margin-top: 20px;
+    margin-bottom: 5px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding-bottom: 5px;
+    font-size: 16px;
+    color: #3b82f6;
+}
 
-        h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            background: linear-gradient(45deg, var(--drum-color), var(--primary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
 
-        .controls {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
+label {
+    display: block;
+    margin-top: 10px;
+    font-size: 13px;
+    color: #cbd5e1;
+}
 
-        button {
-            background-color: var(--grid-bg);
-            color: var(--text);
-            border: none;
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
+input, select {
+    width: 100%;
+    padding: 8px;
+    border: none;
+    border-radius: 8px;
+    margin-top: 4px;
+    font-size: 14px;
+    background: #334155;
+    color: white;
+    box-sizing: border-box;
+}
 
-        button:hover:not(:disabled) {
-            background-color: #475569;
-        }
+input[type="range"] {
+    padding: 0;
+    height: 8px;
+    background: #475569;
+}
 
-        button:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
+button {
+    width: 100%;
+    margin-top: 15px;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: background 0.2s;
+}
 
-        button.playing {
-            background-color: var(--primary);
-            box-shadow: 0 0 12px var(--primary-glow);
-        }
+.play {
+    background: #22c55e;
+    color: white;
+}
+.play:hover { background: #16a34a; }
 
-        button.recording {
-            background-color: var(--record-color);
-            box-shadow: 0 0 12px var(--record-glow);
-            animation: pulse 1.5s infinite;
-        }
+.download {
+    background: #3b82f6;
+    color: white;
+}
+.download:hover { background: #2563eb; }
 
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
-        }
+.info {
+    text-align: center;
+    margin-top: 15px;
+    opacity: .6;
+    font-size: 12px;
+}
 
-        .bpm-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
-        input[type="range"] {
-            appearance: none;
-            background: var(--grid-bg);
-            height: 6px;
-            border-radius: 3px;
-            outline: none;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            appearance: none;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: var(--primary);
-            cursor: pointer;
-        }
-
-        .section-label {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: var(--text-muted);
-            margin: 20px 0 10px 0;
-        }
-
-        .grid-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 8px;
-            gap: 10px;
-        }
-
-        .track-label {
-            width: 80px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--text-muted);
-        }
-
-        .steps-container {
-            display: grid;
-            grid-template-columns: repeat(16, minmax(0, 1fr));
-            gap: 6px;
-            flex-grow: 1;
-        }
-
-        .step {
-            aspect-ratio: 1;
-            background-color: var(--grid-bg);
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.1s ease;
-            position: relative;
-        }
-
-        .steps-container .step:nth-child(4n+1) {
-            filter: brightness(1.2);
-        }
-
-        .step.active.drum {
-            background-color: var(--drum-color);
-            box-shadow: 0 0 8px rgba(236, 72, 153, 0.6);
-        }
-
-        .step.active.synth {
-            background-color: var(--synth-color);
-            box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
-        }
-
-        .step.playing-step::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            border: 2px solid var(--text);
-            border-radius: 4px;
-            pointer-events: none;
-        }
-    </style>
+canvas {
+    width: 100%;
+    height: 100px;
+    background: #020617;
+    border-radius: 10px;
+    margin-top: 15px;
+    display: block;
+}
+</style>
 </head>
 <body>
 
-    <div class="sequencer-container">
-        <header>
-            <h1>Step Sequencer</h1>
-            <div class="controls">
-                <div class="bpm-control">
-                    <label for="bpm">BPM: <span id="bpm-val">120</span></label>
-                    <input type="range" id="bpm" min="60" max="200" value="120">
-                </div>
-                <button id="play-btn">Play</button>
-                <button id="record-btn">Record</button>
-                <button id="download-btn" disabled>Download .WAV</button>
-                <button id="clear-btn">Clear</button>
-            </div>
-        </header>
+<div class="panel">
 
-        <div class="section-label">Drum Machine</div>
-        <div id="drum-tracks"></div>
+<h1>🎵 Advanced Sound Lab</h1>
 
-        <div class="section-label">Synthesizer</div>
-        <div id="synth-tracks"></div>
+<canvas id="visualizer"></canvas>
+
+<h3>Primary Source</h3>
+<div class="grid-2">
+    <div>
+        <label>Source Type</label>
+        <select id="sourceType" onchange="toggleSourceParams()">
+            <option value="oscillator">Oscillator</option>
+            <option value="noise">Noise Generator</option>
+        </select>
+    </div>
+    <div>
+        <label>Waveform / Color</label>
+        <select id="waveform">
+            <option value="sine">Sine</option>
+            <option value="square">Square</option>
+            <option value="sawtooth">Sawtooth</option>
+            <option value="triangle">Triangle</option>
+        </select>
+        <select id="noiseType" style="display:none;">
+            <option value="white">White Noise</option>
+            <option value="rain">Rain Sim</option>
+            <option value="fire">Fire Crackle</option>
+            <option value="wind">Wind Sim</option>
+        </select>
+    </div>
+</div>
+
+<div id="oscParams">
+    <div class="grid-2">
+        <div>
+            <label>Start Freq (Hz)</label>
+            <input type="number" id="freqStart" value="440">
+        </div>
+        <div>
+            <label>End Freq (Hz)</label>
+            <input type="number" id="freqEnd" value="440">
+        </div>
     </div>
 
-    <script>
-        let audioCtx = null;
-        let mainAudioBus = null; // Master node combining all tracks
-        let mediaDestination = null; // Connects audio graph to recorder
-        let mediaRecorder = null;
-        let recordedChunks = [];
+    <h3>Timbre & Layering</h3>
+    <div class="grid-2">
+        <div>
+            <label>Mix Layer</label>
+            <select id="layering">
+                <option value="none">Single Tone</option>
+                <option value="octave">Octave Double</option>
+                <option value="triad">Major Triad</option>
+                <option value="detune">Detuned Unison</option>
+            </select>
+        </div>
+        <div>
+            <label>Harmonic Content</label>
+            <input type="range" id="timbreHarmonics" min="0" max="100" value="0">
+        </div>
+    </div>
+</div>
 
-        const drumLabels = ['Kick', 'Snare', 'Hi-Hat', 'Clap'];
-        const synthNotes = [523.25, 493.88, 440.00, 392.00, 349.23, 329.63, 293.66, 261.63];
-        const synthLabels = ['C5', 'B4', 'A4', 'G4', 'F4', 'E4', 'D4', 'C4'];
+<h3>Modifiers & FX</h3>
+<div class="grid-2">
+    <div>
+        <label>Filter Type</label>
+        <select id="filterType">
+            <option value="none">None</option>
+            <option value="lowpass">Lowpass</option>
+            <option value="highpass">Highpass</option>
+            <option value="bandpass">Bandpass</option>
+        </select>
+    </div>
+    <div>
+        <label>Filter Cutoff (Hz)</label>
+        <input type="number" id="filterCutoff" value="1000">
+    </div>
+</div>
 
-        let isPlaying = false;
-        let isRecording = false;
-        let currentStep = 0;
-        let bpm = 120;
-        let timeoutId = null;
+<div class="grid-2">
+    <div>
+        <label>Echo Delay (sec)</label>
+        <input type="number" id="echoDelay" value="0.3" step="0.1" min="0">
+    </div>
+    <div>
+        <label>Echo Feedback (0-1)</label>
+        <input type="number" id="echoFeedback" value="0.4" step="0.1" min="0" max="0.9">
+    </div>
+</div>
 
-        const drumState = Array(4).fill().map(() => Array(16).fill(false));
-        const synthState = Array(8).fill().map(() => Array(16).fill(false));
+<h3>Global Parameters</h3>
+<div class="grid-2">
+    <div>
+        <label>Amplitude (0 - 1)</label>
+        <input type="number" id="amp" value="0.4" step="0.1">
+    </div>
+    <div>
+        <label>Duration (seconds)</label>
+        <input type="number" id="duration" value="3">
+    </div>
+</div>
 
-        const drumTracksContainer = document.getElementById('drum-tracks');
-        const synthTracksContainer = document.getElementById('synth-tracks');
-        const playBtn = document.getElementById('play-btn');
-        const recordBtn = document.getElementById('record-btn');
-        const downloadBtn = document.getElementById('download-btn');
-        const clearBtn = document.getElementById('clear-btn');
-        const bpmInput = document.getElementById('bpm');
-        const bpmVal = document.getElementById('bpm-val');
+<button class="play" onclick="playSound()">▶ Play Sound</button>
+<button class="download" onclick="downloadSound()">⬇ Download WAV</button>
 
-        function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                
-                // Route all output elements through a single gain node
-                mainAudioBus = audioCtx.createGain();
-                mainAudioBus.gain.setValueAtTime(1.0, audioCtx.currentTime);
-                mainAudioBus.connect(audioCtx.destination);
+<div class="info">
+Custom procedural synthesis engine with real-time emulation.
+</div>
 
-                // Set up the stream capturing architecture for recording
-                mediaDestination = audioCtx.createMediaStreamDestination();
-                mainAudioBus.connect(mediaDestination);
-            }
-        }
+</div>
 
-        // --- Sound Generation (Routed into master mix node) ---
+<script>
+const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+let analyser = null;
+let canvas = document.getElementById("visualizer");
+let canvasCtx = canvas.getContext("2d");
+let animationId = null;
+
+// Initialize Canvas Size
+canvas.width = canvas.getBoundingClientRect().width * window.devicePixelRatio;
+canvas.height = 100 * window.devicePixelRatio;
+canvasCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+function toggleSourceParams() {
+    const type = document.getElementById("sourceType").value;
+    if (type === "oscillator") {
+        document.getElementById("oscParams").style.display = "block";
+        document.getElementById("waveform").style.display = "block";
+        document.getElementById("noiseType").style.display = "none";
+    } else {
+        document.getElementById("oscParams").style.display = "none";
+        document.getElementById("waveform").style.display = "none";
+        document.getElementById("noiseType").style.display = "block";
+    }
+}
+
+function drawVisualizer() {
+    if (!analyser) return;
+    animationId = requestAnimationFrame(drawVisualizer);
+
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    analyser.getByteTimeDomainData(dataArray);
+
+    const w = canvas.width / window.devicePixelRatio;
+    const h = canvas.height / window.devicePixelRatio;
+    
+    canvasCtx.fillStyle = "#020617";
+    canvasCtx.fillRect(0, 0, w, h);
+    canvasCtx.lineWidth = 2;
+    canvasCtx.strokeStyle = "#22c55e";
+    canvasCtx.beginPath();
+
+    const sliceWidth = w / bufferLength;
+    let x = 0;
+
+    for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = (v * h) / 2;
+
+        if (i === 0) canvasCtx.moveTo(x, y);
+        else canvasCtx.lineTo(x, y);
+
+        x += sliceWidth;
+    }
+
+    canvasCtx.lineTo(w, h / 2);
+    canvasCtx.stroke();
+}
+
+function createNoiseBuffer(type, duration, sampleRate) {
+    const bufferSize = sampleRate * duration;
+    const buffer = new Float32Array(bufferSize);
+    let lastOut = 0.0; // Filter tracking for structural noise profiles
+    
+    for (let i = 0; i < bufferSize; i++) {
+        let white = Math.random() * 2 - 1;
         
-        function playKick() {
+        if (type === "white") {
+            buffer[i] = white;
+        } else if (type === "rain") {
+            // Low-pass filtered pink/brown flavor
+            lastOut = 0.85 * lastOut + 0.15 * white;
+            buffer[i] = lastOut * 2.5;
+        } else if (type === "fire") {
+            // Crackle spikes mixed into filtered noise
+            lastOut = 0.80 * lastOut + 0.20 * white;
+            let crackle = Math.random() > 0.997 ? (Math.random() * 2 - 1) * 0.8 : 0;
+            buffer[i] = (lastOut * 0.5) + crackle;
+        } else if (type === "wind") {
+            // Slow modulation of filtering
+            let t = i / sampleRate;
+            let mod = Math.sin(2 * Math.PI * 0.25 * t) * 0.1 + 0.85;
+            lastOut = mod * lastOut + (1 - mod) * white;
+            buffer[i] = lastOut * 3.0;
+        }
+    }
+    return buffer;
+}
+
+function playSound() {
+    if (!audioCtx) audioCtx = new AudioContextClass();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (animationId) cancelAnimationFrame(animationId);
+
+    const sourceType = document.getElementById("sourceType").value;
+    const amplitude = parseFloat(document.getElementById("amp").value);
+    const duration = parseFloat(document.getElementById("duration").value);
+    const filterType = document.getElementById("filterType").value;
+    const filterCutoff = parseFloat(document.getElementById("filterCutoff").value);
+    const echoDelayVal = parseFloat(document.getElementById("echoDelay").value);
+    const echoFeedbackVal = parseFloat(document.getElementById("echoFeedback").value);
+
+    // Master Setup
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 1024;
+    
+    const masterGain = audioCtx.createGain();
+    masterGain.gain.setValueAtTime(amplitude, audioCtx.currentTime);
+    masterGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+    // Track audio nodes for termination
+    let sources = [];
+
+    if (sourceType === "oscillator") {
+        const freqStart = parseFloat(document.getElementById("freqStart").value);
+        const freqEnd = parseFloat(document.getElementById("freqEnd").value);
+        const waveform = document.getElementById("waveform").value;
+        const layering = document.getElementById("layering").value;
+        const harmonicsVal = parseFloat(document.getElementById("timbreHarmonics").value) / 100;
+
+        let freqs = [freqStart];
+        let ends = [freqEnd];
+
+        if (layering === "octave") {
+            freqs.push(freqStart * 2); ends.push(freqEnd * 2);
+        } else if (layering === "triad") {
+            freqs.push(freqStart * 1.25); ends.push(freqEnd * 1.25); // Major 3rd
+            freqs.push(freqStart * 1.5); ends.push(freqEnd * 1.5);   // Perfect 5th
+        } else if (layering === "detune") {
+            freqs.push(freqStart * 1.01); ends.push(freqEnd * 1.01);
+            freqs.push(freqStart * 0.99); ends.push(freqEnd * 0.99);
+        }
+
+        freqs.forEach((fStart, idx) => {
             const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(mainAudioBus);
+            osc.type = waveform;
+            osc.frequency.setValueAtTime(fStart, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(ends[idx], audioCtx.currentTime + duration);
+            
+            // Add harmonic overtone component based on Timbre control
+            if (harmonicsVal > 0) {
+                const hOsc = audioCtx.createOscillator();
+                hOsc.type = "sine";
+                hOsc.frequency.setValueAtTime(fStart * 3, audioCtx.currentTime);
+                hOsc.frequency.linearRampToValueAtTime(ends[idx] * 3, audioCtx.currentTime + duration);
+                const hGain = audioCtx.createGain();
+                hGain.gain.setValueAtTime(harmonicsVal * 0.3, audioCtx.currentTime);
+                hOsc.connect(hGain);
+                hGain.connect(masterGain);
+                hOsc.start();
+                hOsc.stop(audioCtx.currentTime + duration);
+            }
 
-            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-
-            gain.gain.setValueAtTime(1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-
+            osc.connect(masterGain);
             osc.start();
-            osc.stop(audioCtx.currentTime + 0.3);
-        }
-
-        function playSnare() {
-            const bufferSize = audioCtx.sampleRate * 0.2;
-            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-                data[i] = Math.random() * 2 - 1;
-            }
-
-            const noise = audioCtx.createBufferSource();
-            noise.buffer = buffer;
-
-            const noiseFilter = audioCtx.createBiquadFilter();
-            noiseFilter.type = 'highpass';
-            noiseFilter.frequency.value = 1000;
-
-            const noiseGain = audioCtx.createGain();
-            noiseGain.gain.setValueAtTime(0.7, audioCtx.currentTime);
-            noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-
-            const osc = audioCtx.createOscillator();
-            const oscGain = audioCtx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(180, audioCtx.currentTime);
-            oscGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-            oscGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-
-            noise.connect(noiseFilter);
-            noiseFilter.connect(noiseGain);
-            noiseGain.connect(mainAudioBus);
-
-            osc.connect(oscGain);
-            oscGain.connect(mainAudioBus);
-
-            noise.start();
-            osc.start();
-            noise.stop(audioCtx.currentTime + 0.2);
-            osc.stop(audioCtx.currentTime + 0.2);
-        }
-
-        function playHiHat() {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            const filter = audioCtx.createBiquadFilter();
-
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(10000, audioCtx.currentTime);
-            
-            filter.type = 'highpass';
-            filter.frequency.value = 7000;
-
-            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
-
-            osc.connect(filter);
-            filter.connect(gain);
-            gain.connect(mainAudioBus);
-
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.05);
-        }
-
-        function playClap() {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-
-            const now = audioCtx.currentTime;
-            gain.gain.setValueAtTime(0, now);
-            gain.gain.linearRampToValueAtTime(0.6, now + 0.01);
-            gain.gain.linearRampToValueAtTime(0, now + 0.03);
-            gain.gain.linearRampToValueAtTime(0.6, now + 0.04);
-            gain.gain.linearRampToValueAtTime(0, now + 0.06);
-            gain.gain.linearRampToValueAtTime(0.6, now + 0.07);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-
-            osc.connect(gain);
-            gain.connect(mainAudioBus);
-
-            osc.start();
-            osc.stop(now + 0.25);
-        }
-
-        function playSynthTone(freq) {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            
-            osc.type = 'triangle'; 
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            
-            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-            
-            osc.connect(gain);
-            gain.connect(mainAudioBus);
-            
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.4);
-        }
-
-        // --- Render UI Grid ---
-
-        function buildGrid(labels, count, type, container, state) {
-            for (let row = 0; row < count; row++) {
-                const rowDiv = document.createElement('div');
-                rowDiv.classList.add('grid-row');
-
-                const label = document.createElement('div');
-                label.classList.add('track-label');
-                label.textContent = labels[row];
-                rowDiv.appendChild(label);
-
-                const stepsContainer = document.createElement('div');
-                stepsContainer.classList.add('steps-container');
-
-                for (let step = 0; step < 16; step++) {
-                    const stepDiv = document.createElement('div');
-                    stepDiv.classList.add('step', type);
-                    stepDiv.dataset.row = row;
-                    stepDiv.dataset.step = step;
-
-                    stepDiv.addEventListener('click', () => {
-                        initAudio();
-                        state[row][step] = !state[row][step];
-                        stepDiv.classList.toggle('active', state[row][step]);
-                    });
-
-                    stepsContainer.appendChild(stepDiv);
-                }
-
-                rowDiv.appendChild(stepsContainer);
-                container.appendChild(rowDiv);
-            }
-        }
-
-        // --- Sequencer Core Loop ---
-
-        function playLoop() {
-            if (!isPlaying) return;
-
-            document.querySelectorAll('.step').forEach(step => {
-                if (parseInt(step.dataset.step) === currentStep) {
-                    step.classList.add('playing-step');
-                } else {
-                    step.classList.remove('playing-step');
-                }
-            });
-
-            if (drumState[0][currentStep]) playKick();
-            if (drumState[1][currentStep]) playSnare();
-            if (drumState[2][currentStep]) playHiHat();
-            if (drumState[3][currentStep]) playClap();
-
-            for (let row = 0; row < 8; row++) {
-                if (synthState[row][currentStep]) {
-                    playSynthTone(synthNotes[row]);
-                }
-            }
-
-            const stepStepInterval = (60 / bpm) / 4 * 1000;
-            currentStep = (currentStep + 1) % 16;
-
-            timeoutId = setTimeout(playLoop, stepStepInterval);
-        }
-
-        // --- Recording Methods ---
-
-        function toggleRecording() {
-            initAudio();
-            if (!isRecording) {
-                // Begin Recording Process
-                recordedChunks = [];
-                const options = { mimeType: 'audio/webm' }; // Standard browser runtime audio container
-                
-                mediaRecorder = new MediaRecorder(mediaDestination.stream, options);
-                
-                mediaRecorder.ondataavailable = (e) => {
-                    if (e.data.size > 0) recordedChunks.push(e.data);
-                };
-
-                mediaRecorder.onstop = () => {
-                    downloadBtn.disabled = false; // Enable download option
-                };
-
-                mediaRecorder.start();
-                isRecording = true;
-                recordBtn.textContent = 'Stop Rec';
-                recordBtn.classList.add('recording');
-
-                // Force loop playback automatically if not running
-                if(!isPlaying) {
-                    playBtn.click();
-                }
-            } else {
-                // Cease Recording Process
-                mediaRecorder.stop();
-                isRecording = false;
-                recordBtn.textContent = 'Record';
-                recordBtn.classList.remove('recording');
-            }
-        }
-
-        // Programmatic container converter for WAV generation
-        function cleanAndDownloadWav() {
-            if (recordedChunks.length === 0) return;
-
-            const blob = new Blob(recordedChunks, { type: 'audio/webm' });
-            const fileReader = new FileReader();
-
-            fileReader.onload = function() {
-                const arrayBuffer = this.result;
-                
-                // Parse standard encoded data back into linear sample audio nodes
-                audioCtx.decodeAudioData(arrayBuffer, (audioBuffer) => {
-                    const wavBuffer = audioBufferToWav(audioBuffer);
-                    const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
-                    
-                    const url = URL.createObjectURL(wavBlob);
-                    const anchor = document.createElement('a');
-                    anchor.href = url;
-                    anchor.download = 'sequencer-loop.wav';
-                    anchor.click();
-                    URL.revokeObjectURL(url);
-                });
-            };
-            fileReader.readAsArrayBuffer(blob);
-        }
-
-        // Native conversion mapping structural layout patterns for canonical standard RIFF/WAV format metadata
-        function audioBufferToWav(buffer) {
-            let numOfChan = buffer.numberOfChannels,
-                length = buffer.length * numOfChan * 2 + 44,
-                bufferArr = new ArrayBuffer(length),
-                view = new DataView(bufferArr),
-                channels = [], i, sample,
-                offset = 0,
-                pos = 0;
-
-            function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
-            function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
-
-            // Write standard RIFF identifier header block
-            setUint32(0x46464952); // "RIFF"
-            setUint32(length - 8); // file length space sizing definition
-            setUint32(0x45564157); // "WAVE"
-
-            // Write structural component sub-chunks ("fmt ")
-            setUint32(0x20746d66); // "fmt " chunk
-            setUint32(16);         // chunk length size metadata
-            setUint16(1);          // sample profile classification (PCM linear format)
-            setUint16(numOfChan);
-            setUint32(buffer.sampleRate);
-            setUint32(buffer.sampleRate * 2 * numOfChan); // byte rate calculation metrics
-            setUint16(numOfChan * 2);                     // dynamic block alignment attributes
-            setUint16(16);                                // sample bit allocation configuration depth (16-bit)
-
-            // Write tracking configuration sub-chunks ("data")
-            setUint32(0x61746164); // "data" chunk identification marker
-            setUint32(length - pos - 4);
-
-            for (i = 0; i < buffer.numberOfChannels; i++) {
-                channels.push(buffer.getChannelData(i));
-            }
-
-            while (pos < length) {
-                for (i = 0; i < numOfChan; i++) {
-                    sample = Math.max(-1, Math.min(1, channels[i][offset])); // Hard compression guard limits
-                    sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF; // Translate context floating values to signed integers 16-bit format
-                    view.setInt16(pos, sample, true);
-                    pos += 2;
-                }
-                offset++;
-            }
-            return bufferArr;
-        }
-
-        // --- Event Listeners & Interaction Handles ---
-
-        playBtn.addEventListener('click', () => {
-            initAudio();
-            isPlaying = !isPlaying;
-            
-            if (isPlaying) {
-                playBtn.textContent = 'Pause';
-                playBtn.classList.add('playing');
-                playLoop();
-            } else {
-                playBtn.textContent = 'Play';
-                playBtn.classList.remove('playing');
-                clearTimeout(timeoutId);
-                document.querySelectorAll('.step').forEach(s => s.classList.remove('playing-step'));
-                
-                // Halt recorder processes naturally if sequence playback concludes manually
-                if (isRecording) {
-                    toggleRecording();
-                }
-            }
+            osc.stop(audioCtx.currentTime + duration);
         });
 
-        recordBtn.addEventListener('click', toggleRecording);
-        downloadBtn.addEventListener('click', cleanAndDownloadWav);
+    } else {
+        // Noise Path
+        const noiseType = document.getElementById("noiseType").value;
+        const rawData = createNoiseBuffer(noiseType, duration, audioCtx.sampleRate);
+        const audioBuffer = audioCtx.createBuffer(1, rawData.length, audioCtx.sampleRate);
+        audioBuffer.getChannelData(0).set(rawData);
 
-        clearBtn.addEventListener('click', () => {
-            for (let r = 0; r < 4; r++) drumState[r].fill(false);
-            for (let r = 0; r < 8; r++) synthState[r].fill(false);
-            document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
-        });
+        const noiseNode = audioCtx.createBufferSource();
+        noiseNode.buffer = audioBuffer;
+        noiseNode.connect(masterGain);
+        noiseNode.start();
+    }
 
-        bpmInput.addEventListener('input', (e) => {
-            bpm = e.target.value;
-            bpmVal.textContent = bpm;
-        });
+    // Connect Processing Chain (FX Routing)
+    let currentOut = masterGain;
 
-        buildGrid(drumLabels, 4, 'drum', drumTracksContainer, drumState);
-        buildGrid(synthLabels, 8, 'synth', synthTracksContainer, synthState);
-    </script>
+    if (filterType !== "none") {
+        const filterNode = audioCtx.createBiquadFilter();
+        filterNode.type = filterType;
+        filterNode.frequency.setValueAtTime(filterCutoff, audioCtx.currentTime);
+        currentOut.connect(filterNode);
+        currentOut = filterNode;
+    }
+
+    if (echoDelayVal > 0) {
+        const delayNode = audioCtx.createDelay();
+        const feedbackNode = audioCtx.createGain();
+        
+        delayNode.delayTime.setValueAtTime(echoDelayVal, audioCtx.currentTime);
+        feedbackNode.gain.setValueAtTime(echoFeedbackVal, audioCtx.currentTime);
+        
+        currentOut.connect(delayNode);
+        delayNode.connect(feedbackNode);
+        feedbackNode.connect(delayNode); // Echo feedback loop
+        
+        const mixGain = audioCtx.createGain();
+        mixGain.gain.setValueAtTime(1.0, audioCtx.currentTime);
+        currentOut.connect(mixGain);
+        delayNode.connect(mixGain);
+        currentOut = mixGain;
+    }
+
+    currentOut.connect(analyser);
+    analyser.connect(audioCtx.destination);
+
+    drawVisualizer();
+}
+
+function downloadSound() {
+    const sourceType = document.getElementById("sourceType").value;
+    const amplitude = parseFloat(document.getElementById("amp").value);
+    const duration = parseFloat(document.getElementById("duration").value);
+    const filterType = document.getElementById("filterType").value;
+    const filterCutoff = parseFloat(document.getElementById("filterCutoff").value);
+    const echoDelayVal = parseFloat(document.getElementById("echoDelay").value);
+    const echoFeedbackVal = parseFloat(document.getElementById("echoFeedback").value);
+
+    const sampleRate = 44100;
+    const length = sampleRate * duration;
+    let buffer = new Float32Array(length);
+
+    // 1. Core Sample Generation Loop
+    if (sourceType === "oscillator") {
+        const freqStart = parseFloat(document.getElementById("freqStart").value);
+        const freqEnd = parseFloat(document.getElementById("freqEnd").value);
+        const waveform = document.getElementById("waveform").value;
+        const layering = document.getElementById("layering").value;
+        const harmonicsVal = parseFloat(document.getElementById("timbreHarmonics").value) / 100;
+
+        let freqs = [freqStart];
+        let ends = [freqEnd];
+
+        if (layering === "octave") { freqs.push(freqStart*2); ends.push(freqEnd*2); }
+        else if (layering === "triad") { 
+            freqs.push(freqStart*1.25); ends.push(freqEnd*1.25); 
+            freqs.push(freqStart*1.5); ends.push(freqEnd*1.5); 
+        }
+        else if (layering === "detune") { 
+            freqs.push(freqStart*1.01); ends.push(freqEnd*1.01); 
+            freqs.push(freqStart*0.99); ends.push(freqEnd*0.99); 
+        }
+
+        // Track accumulated phase for chirped/swept multi-frequencies
+        let phases = new Float32Array(freqs.length);
+        let harmonicPhases = new Float32Array(freqs.length);
+
+        for (let i = 0; i < length; i++) {
+            const t = i / sampleRate;
+            let sampleSum = 0;
+
+            for (let f = 0; f < freqs.length; f++) {
+                // Linear frequency sweep integration formula
+                let currentFreq = freqs[f] + ((ends[f] - freqs[f]) * (t / duration));
+                phases[f] += (2 * Math.PI * currentFreq) / sampleRate;
+                
+                let s = 0;
+                if (waveform === "sine") s = Math.sin(phases[f]);
+                else if (waveform === "square") s = Math.sign(Math.sin(phases[f]));
+                else if (waveform === "triangle") s = 2 * Math.asin(Math.sin(phases[f])) / Math.PI;
+                else if (waveform === "sawtooth") s = 2 * (phases[f] / (2 * Math.PI) - Math.floor(phases[f] / (2 * Math.PI) + 0.5));
+
+                if (harmonicsVal > 0) {
+                    harmonicPhases[f] += (2 * Math.PI * (currentFreq * 3)) / sampleRate;
+                    s += Math.sin(harmonicPhases[f]) * harmonicsVal * 0.3;
+                }
+                sampleSum += s;
+            }
+            // Linear gain envelope attenuation over time matching the Web Audio dynamics
+            let env = (1.0 - (t / duration));
+            buffer[i] = (sampleSum / freqs.length) * amplitude * env;
+        }
+    } else {
+        const noiseType = document.getElementById("noiseType").value;
+        const noiseData = createNoiseBuffer(noiseType, duration, sampleRate);
+        for(let i=0; i<length; i++) {
+            let env = (1.0 - ((i/sampleRate) / duration));
+            buffer[i] = noiseData[i] * amplitude * env;
+        }
+    }
+
+    // 2. Numerical Filter Application (Simple 1-Pole Digital DSP emulation)
+    if (filterType !== "none") {
+        let filtered = new Float32Array(length);
+        let rc = 1.0 / (2 * Math.PI * filterCutoff);
+        let dt = 1.0 / sampleRate;
+        let alpha = dt / (rc + dt);
+        let lastValue = 0;
+
+        if (filterType === "lowpass") {
+            for (let i = 0; i < length; i++) {
+                filtered[i] = lastValue + alpha * (buffer[i] - lastValue);
+                lastValue = filtered[i];
+            }
+            buffer = filtered;
+        } else if (filterType === "highpass") {
+            for (let i = 0; i < length; i++) {
+                filtered[i] = alpha * (lastValue + buffer[i] - (i > 0 ? buffer[i-1] : 0));
+                lastValue = filtered[i];
+            }
+            buffer = filtered;
+        }
+    }
+
+    // 3. Digital Feedback Delay (Echo Simulation)
+    if (echoDelayVal > 0) {
+        let delaySamples = Math.floor(echoDelayVal * sampleRate);
+        if (delaySamples > 0 && delaySamples < length) {
+            let output = new Float32Array(length);
+            for (let i = 0; i < length; i++) {
+                output[i] = buffer[i];
+                if (i >= delaySamples) {
+                    output[i] += output[i - delaySamples] * echoFeedbackVal;
+                }
+            }
+            buffer = output;
+        }
+    }
+
+    const wav = createWav(buffer, sampleRate);
+    const blob = new Blob([wav], { type: 'audio/wav' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "synthesized_sound.wav";
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function createWav(samples, sampleRate) {
+    const buffer = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(buffer);
+
+    function writeString(offset, str) {
+        for (let i = 0; i < str.length; i++) {
+            view.setUint8(offset + i, str.charCodeAt(i));
+        }
+    }
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, samples.length * 2, true);
+
+    let offset = 44;
+    for (let i = 0; i < samples.length; i++) {
+        let s = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        offset += 2;
+    }
+    return buffer;
+}
+</script>
+
 </body>
 </html>
