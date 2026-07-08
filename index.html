@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Step Sequencer</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --grid-bg: #334155;
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.5);
+            --drum-color: #ec4899;
+            --synth-color: #10b981;
+            --record-color: #ef4444;
+            --record-glow: rgba(239, 68, 68, 0.5);
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .sequencer-container {
+            background-color: var(--panel-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 950px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid var(--grid-bg);
+            padding-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background: linear-gradient(45deg, var(--drum-color), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background-color: var(--grid-bg);
+            color: var(--text);
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #475569;
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        button.playing {
+            background-color: var(--primary);
+            box-shadow: 0 0 12px var(--primary-glow);
+        }
+
+        button.recording {
+            background-color: var(--record-color);
+            box-shadow: 0 0 12px var(--record-glow);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .bpm-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        input[type="range"] {
+            appearance: none;
+            background: var(--grid-bg);
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+        }
+
+        .section-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            margin: 20px 0 10px 0;
+        }
+
+        .grid-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 10px;
+        }
+
+        .track-label {
+            width: 80px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .steps-container {
+            display: grid;
+            grid-template-columns: repeat(16, minmax(0, 1fr));
+            gap: 6px;
+            flex-grow: 1;
+        }
+
+        .step {
+            aspect-ratio: 1;
+            background-color: var(--grid-bg);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            position: relative;
+        }
+
+        .steps-container .step:nth-child(4n+1) {
+            filter: brightness(1.2);
+        }
+
+        .step.active.drum {
+            background-color: var(--drum-color);
+            box-shadow: 0 0 8px rgba(236, 72, 153, 0.6);
+        }
+
+        .step.active.synth {
+            background-color: var(--synth-color);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+        }
+
+        .step.playing-step::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border: 2px solid var(--text);
+            border-radius: 4px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sequencer-container">
+        <header>
+            <h1>Step Sequencer</h1>
+            <div class="controls">
+                <div class="bpm-control">
+                    <label for="bpm">BPM: <span id="bpm-val">120</span></label>
+                    <input type="range" id="bpm" min="60" max="200" value="120">
+                </div>
+                <button id="play-btn">Play</button>
+                <button id="record-btn">Record</button>
+                <button id="download-btn" disabled>Download .WAV</button>
+                <button id="clear-btn">Clear</button>
+            </div>
+        </header>
+
+        <div class="section-label">Drum Machine</div>
+        <div id="drum-tracks"></div>
+
+        <div class="section-label">Synthesizer</div>
+        <div id="synth-tracks"></div>
+    </div>
+
+    <script>
+        let audioCtx = null;
+        let mainAudioBus = null; // Master node combining all tracks
+        let mediaDestination = null; // Connects audio graph to recorder
+        let mediaRecorder = null;
+        let recordedChunks = [];
+
+        const drumLabels = ['Kick', 'Snare', 'Hi-Hat', 'Clap'];
+        const synthNotes = [523.25, 493.88, 440.00, 392.00, 349.23, 329.63, 293.66, 261.63];
+        const synthLabels = ['C5', 'B4', 'A4', 'G4', 'F4', 'E4', 'D4', 'C4'];
+
+        let isPlaying = false;
+        let isRecording = false;
+        let currentStep = 0;
+        let bpm = 120;
+        let timeoutId = null;
+
+        const drumState = Array(4).fill().map(() => Array(16).fill(false));
+        const synthState = Array(8).fill().map(() => Array(16).fill(false));
+
+        const drumTracksContainer = document.getElementById('drum-tracks');
+        const synthTracksContainer = document.getElementById('synth-tracks');
+        const playBtn = document.getElementById('play-btn');
+        const recordBtn = document.getElementById('record-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const bpmInput = document.getElementById('bpm');
+        const bpmVal = document.getElementById('bpm-val');
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Route all output elements through a single gain node
+                mainAudioBus = audioCtx.createGain();
+                mainAudioBus.gain.setValueAtTime(1.0, audioCtx.currentTime);
+                mainAudioBus.connect(audioCtx.destination);
+
+                // Set up the stream capturing architecture for recording
+                mediaDestination = audioCtx.createMediaStreamDestination();
+                mainAudioBus.connect(mediaDestination);
+            }
+        }
+
+        // --- Sound Generation (Routed into master mix node) ---
+        
+        function playKick() {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(mainAudioBus);
+
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+
+            gain.gain.setValueAtTime(1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        }
+
+        function playSnare() {
+            const bufferSize = audioCtx.sampleRate * 0.2;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+
+            const noiseFilter = audioCtx.createBiquadFilter();
+            noiseFilter.type = 'highpass';
+            noiseFilter.frequency.value = 1000;
+
+            const noiseGain = audioCtx.createGain();
+            noiseGain.gain.setValueAtTime(0.7, audioCtx.currentTime);
+            noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+
+            const osc = audioCtx.createOscillator();
+            const oscGain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+            oscGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            oscGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+
+            noise.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseGain.connect(mainAudioBus);
+
+            osc.connect(oscGain);
+            oscGain.connect(mainAudioBus);
+
+            noise.start();
+            osc.start();
+            noise.stop(audioCtx.currentTime + 0.2);
+            osc.stop(audioCtx.currentTime + 0.2);
+        }
+
+        function playHiHat() {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(10000, audioCtx.currentTime);
+            
+            filter.type = 'highpass';
+            filter.frequency.value = 7000;
+
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(mainAudioBus);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.05);
+        }
+
+        function playClap() {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+
+            const now = audioCtx.currentTime;
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.6, now + 0.01);
+            gain.gain.linearRampToValueAtTime(0, now + 0.03);
+            gain.gain.linearRampToValueAtTime(0.6, now + 0.04);
+            gain.gain.linearRampToValueAtTime(0, now + 0.06);
+            gain.gain.linearRampToValueAtTime(0.6, now + 0.07);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+            osc.connect(gain);
+            gain.connect(mainAudioBus);
+
+            osc.start();
+            osc.stop(now + 0.25);
+        }
+
+        function playSynthTone(freq) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'triangle'; 
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+            
+            osc.connect(gain);
+            gain.connect(mainAudioBus);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.4);
+        }
+
+        // --- Render UI Grid ---
+
+        function buildGrid(labels, count, type, container, state) {
+            for (let row = 0; row < count; row++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.classList.add('grid-row');
+
+                const label = document.createElement('div');
+                label.classList.add('track-label');
+                label.textContent = labels[row];
+                rowDiv.appendChild(label);
+
+                const stepsContainer = document.createElement('div');
+                stepsContainer.classList.add('steps-container');
+
+                for (let step = 0; step < 16; step++) {
+                    const stepDiv = document.createElement('div');
+                    stepDiv.classList.add('step', type);
+                    stepDiv.dataset.row = row;
+                    stepDiv.dataset.step = step;
+
+                    stepDiv.addEventListener('click', () => {
+                        initAudio();
+                        state[row][step] = !state[row][step];
+                        stepDiv.classList.toggle('active', state[row][step]);
+                    });
+
+                    stepsContainer.appendChild(stepDiv);
+                }
+
+                rowDiv.appendChild(stepsContainer);
+                container.appendChild(rowDiv);
+            }
+        }
+
+        // --- Sequencer Core Loop ---
+
+        function playLoop() {
+            if (!isPlaying) return;
+
+            document.querySelectorAll('.step').forEach(step => {
+                if (parseInt(step.dataset.step) === currentStep) {
+                    step.classList.add('playing-step');
+                } else {
+                    step.classList.remove('playing-step');
+                }
+            });
+
+            if (drumState[0][currentStep]) playKick();
+            if (drumState[1][currentStep]) playSnare();
+            if (drumState[2][currentStep]) playHiHat();
+            if (drumState[3][currentStep]) playClap();
+
+            for (let row = 0; row < 8; row++) {
+                if (synthState[row][currentStep]) {
+                    playSynthTone(synthNotes[row]);
+                }
+            }
+
+            const stepStepInterval = (60 / bpm) / 4 * 1000;
+            currentStep = (currentStep + 1) % 16;
+
+            timeoutId = setTimeout(playLoop, stepStepInterval);
+        }
+
+        // --- Recording Methods ---
+
+        function toggleRecording() {
+            initAudio();
+            if (!isRecording) {
+                // Begin Recording Process
+                recordedChunks = [];
+                const options = { mimeType: 'audio/webm' }; // Standard browser runtime audio container
+                
+                mediaRecorder = new MediaRecorder(mediaDestination.stream, options);
+                
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) recordedChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    downloadBtn.disabled = false; // Enable download option
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                recordBtn.textContent = 'Stop Rec';
+                recordBtn.classList.add('recording');
+
+                // Force loop playback automatically if not running
+                if(!isPlaying) {
+                    playBtn.click();
+                }
+            } else {
+                // Cease Recording Process
+                mediaRecorder.stop();
+                isRecording = false;
+                recordBtn.textContent = 'Record';
+                recordBtn.classList.remove('recording');
+            }
+        }
+
+        // Programmatic container converter for WAV generation
+        function cleanAndDownloadWav() {
+            if (recordedChunks.length === 0) return;
+
+            const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+            const fileReader = new FileReader();
+
+            fileReader.onload = function() {
+                const arrayBuffer = this.result;
+                
+                // Parse standard encoded data back into linear sample audio nodes
+                audioCtx.decodeAudioData(arrayBuffer, (audioBuffer) => {
+                    const wavBuffer = audioBufferToWav(audioBuffer);
+                    const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+                    
+                    const url = URL.createObjectURL(wavBlob);
+                    const anchor = document.createElement('a');
+                    anchor.href = url;
+                    anchor.download = 'sequencer-loop.wav';
+                    anchor.click();
+                    URL.revokeObjectURL(url);
+                });
+            };
+            fileReader.readAsArrayBuffer(blob);
+        }
+
+        // Native conversion mapping structural layout patterns for canonical standard RIFF/WAV format metadata
+        function audioBufferToWav(buffer) {
+            let numOfChan = buffer.numberOfChannels,
+                length = buffer.length * numOfChan * 2 + 44,
+                bufferArr = new ArrayBuffer(length),
+                view = new DataView(bufferArr),
+                channels = [], i, sample,
+                offset = 0,
+                pos = 0;
+
+            function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+            function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
+
+            // Write standard RIFF identifier header block
+            setUint32(0x46464952); // "RIFF"
+            setUint32(length - 8); // file length space sizing definition
+            setUint32(0x45564157); // "WAVE"
+
+            // Write structural component sub-chunks ("fmt ")
+            setUint32(0x20746d66); // "fmt " chunk
+            setUint32(16);         // chunk length size metadata
+            setUint16(1);          // sample profile classification (PCM linear format)
+            setUint16(numOfChan);
+            setUint32(buffer.sampleRate);
+            setUint32(buffer.sampleRate * 2 * numOfChan); // byte rate calculation metrics
+            setUint16(numOfChan * 2);                     // dynamic block alignment attributes
+            setUint16(16);                                // sample bit allocation configuration depth (16-bit)
+
+            // Write tracking configuration sub-chunks ("data")
+            setUint32(0x61746164); // "data" chunk identification marker
+            setUint32(length - pos - 4);
+
+            for (i = 0; i < buffer.numberOfChannels; i++) {
+                channels.push(buffer.getChannelData(i));
+            }
+
+            while (pos < length) {
+                for (i = 0; i < numOfChan; i++) {
+                    sample = Math.max(-1, Math.min(1, channels[i][offset])); // Hard compression guard limits
+                    sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF; // Translate context floating values to signed integers 16-bit format
+                    view.setInt16(pos, sample, true);
+                    pos += 2;
+                }
+                offset++;
+            }
+            return bufferArr;
+        }
+
+        // --- Event Listeners & Interaction Handles ---
+
+        playBtn.addEventListener('click', () => {
+            initAudio();
+            isPlaying = !isPlaying;
+            
+            if (isPlaying) {
+                playBtn.textContent = 'Pause';
+                playBtn.classList.add('playing');
+                playLoop();
+            } else {
+                playBtn.textContent = 'Play';
+                playBtn.classList.remove('playing');
+                clearTimeout(timeoutId);
+                document.querySelectorAll('.step').forEach(s => s.classList.remove('playing-step'));
+                
+                // Halt recorder processes naturally if sequence playback concludes manually
+                if (isRecording) {
+                    toggleRecording();
+                }
+            }
+        });
+
+        recordBtn.addEventListener('click', toggleRecording);
+        downloadBtn.addEventListener('click', cleanAndDownloadWav);
+
+        clearBtn.addEventListener('click', () => {
+            for (let r = 0; r < 4; r++) drumState[r].fill(false);
+            for (let r = 0; r < 8; r++) synthState[r].fill(false);
+            document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+        });
+
+        bpmInput.addEventListener('input', (e) => {
+            bpm = e.target.value;
+            bpmVal.textContent = bpm;
+        });
+
+        buildGrid(drumLabels, 4, 'drum', drumTracksContainer, drumState);
+        buildGrid(synthLabels, 8, 'synth', synthTracksContainer, synthState);
+    </script>
+</body>
+</html>
